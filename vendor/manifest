@@ -1,0 +1,23 @@
+{
+	"version": 0,
+	"dependencies": [
+		{
+			"importpath": "github.com/djimenez/iconv-go",
+			"repository": "https://github.com/djimenez/iconv-go",
+			"revision": "5f6a5a4f0011195c0147545149ad54f4adb54757",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/mikkyang/id3-go",
+			"repository": "https://github.com/mikkyang/id3-go",
+			"revision": "0168d962f1d773af3e29867138593203b653782e",
+			"branch": "master"
+		},
+		{
+			"importpath": "github.com/wtolson/go-taglib",
+			"repository": "https://github.com/wtolson/go-taglib",
+			"revision": "6e68349ff94ecea412de7e748cb5eaa26f472777",
+			"branch": "master"
+		}
+	]
+}
