@@ -42,7 +42,6 @@ type folder struct {
 }
 
 func (f *folder) addFile(segments []string) {
-
 	if len(segments) > 1 {
 		subFolder, ok := f.Folders[segments[0]]
 		if !ok {
@@ -69,41 +68,39 @@ type file struct {
 	Name string
 }
 
-func createByPath(dir string) *folder {
-	splitDir := strings.Split(dir, string(filepath.Separator))
+func main() {
 
-	root := newFolder(dir)
+	sortedPath := flag.String("sorted", "", "Directory to parse by music file tags")
+	unsortedPath := flag.String("unsorted", "", "Directory to parse by folder structure")
+	flag.Parse()
+
+	if *sortedPath == "" && *unsortedPath == "" {
+		fmt.Println("You need to provide at least one type of path. See -help")
+		os.Exit(1)
+	}
+
+	resp := &response{
+		Sorted:   createByTags(*sortedPath),
+		Unsorted: createByPath(*unsortedPath),
+	}
+
+	output, _ := json.Marshal(resp)
+	fmt.Println(string(output))
+}
+
+func createByPath(dir string) *folder {
+	root := newFolder("Root")
 
 	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		path = strings.TrimLeft(strings.TrimRight(path, "/"), dir)
 		segments := strings.Split(path, string(filepath.Separator))
 		if strings.HasSuffix(path, "flac") {
-			root.addFile(segments[1:])
+			root.addFile(segments)
 		}
 		return nil
 	})
 
-	// todo get the part that we want
 	return root
-}
-
-func main() {
-
-	flag.Parse()
-
-	if flag.NArg() != 1 {
-		fmt.Println("path to dir missing")
-		os.Exit(1)
-	}
-	directory := flag.Args()[0]
-
-	woh := &response{
-		Sorted:   createByTags(directory),
-		Unsorted: createByPath(directory),
-	}
-
-	json.Marshal(woh)
-	// b, _ := json.Marshal(woh)
-	// fmt.Println(string(b))
 }
 
 func createByTags(dir string) map[string]*artist {
@@ -164,11 +161,9 @@ func createByTags(dir string) map[string]*artist {
 	}
 
 	return artists
-
 }
 
 func durationToString(d time.Duration) string {
-
 	seconds := int(d.Seconds())
 
 	var hours = seconds / 3600
@@ -186,5 +181,4 @@ func durationToString(d time.Duration) string {
 		return fmt.Sprintf("%0d:%02d:%02d", hours, minutes, seconds)
 	}
 	return fmt.Sprintf("%02d:%02d", minutes, seconds)
-
 }
