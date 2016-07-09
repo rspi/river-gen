@@ -12,15 +12,19 @@ import (
 	id "github.com/wtolson/go-taglib"
 )
 
+type response struct {
+	Sorted   map[string]*artist
+	Unsorted *folder
+}
+
 type artist struct {
 	Name   string
 	Albums map[string]*album
 }
 
 type album struct {
-	Name string
-	Year int
-	// Tracks map[string]*track
+	Name   string
+	Year   int
 	Tracks []*track
 	Path   string
 }
@@ -31,9 +35,58 @@ type track struct {
 	Length string
 }
 
-func main() {
+type folder struct {
+	Name    string
+	Files   []*file
+	Folders map[string]*folder
+}
 
-	artists := make(map[string]*artist)
+func (f *folder) addFile(segments []string) {
+
+	if len(segments) > 1 {
+		subFolder, ok := f.Folders[segments[0]]
+		if !ok {
+			subFolder = newFolder(segments[0])
+		}
+		f.Folders[segments[0]] = subFolder
+		subFolder.addFile(segments[1:])
+	}
+
+	if len(segments) == 1 {
+		f.Files = append(f.Files, &file{segments[0]})
+	}
+}
+
+func newFolder(name string) *folder {
+	return &folder{
+		Name:    strings.TrimRight(name, "/"),
+		Files:   []*file{},
+		Folders: make(map[string]*folder),
+	}
+}
+
+type file struct {
+	Name string
+}
+
+func createByPath(dir string) *folder {
+	splitDir := strings.Split(dir, string(filepath.Separator))
+
+	root := newFolder(dir)
+
+	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		segments := strings.Split(path, string(filepath.Separator))
+		if strings.HasSuffix(path, "flac") {
+			root.addFile(segments[1:])
+		}
+		return nil
+	})
+
+	// todo get the part that we want
+	return root
+}
+
+func main() {
 
 	flag.Parse()
 
@@ -43,8 +96,20 @@ func main() {
 	}
 	directory := flag.Args()[0]
 
+	woh := &response{
+		Sorted:   createByTags(directory),
+		Unsorted: createByPath(directory),
+	}
+
+	json.Marshal(woh)
+	// b, _ := json.Marshal(woh)
+	// fmt.Println(string(b))
+}
+
+func createByTags(dir string) map[string]*artist {
+	artists := make(map[string]*artist)
 	fileList := []string{}
-	filepath.Walk(directory, func(path string, f os.FileInfo, err error) error {
+	filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
 		if strings.HasSuffix(path, "flac") {
 			fileList = append(fileList, path)
 		}
@@ -76,7 +141,7 @@ func main() {
 		}
 		if ok == false {
 			path, _ := filepath.Split(strings.TrimRight(file, "/"))
-			path, _ = filepath.Split(strings.TrimLeft(path, directory))
+			path, _ = filepath.Split(strings.TrimLeft(path, dir))
 
 			alb = &album{
 				Name: albumName,
@@ -95,28 +160,10 @@ func main() {
 			Number: meta.Track(),
 			Length: durationToString(meta.Length()),
 		})
-
-		// trackName := meta.Title()
-		// var tr *track
-		// tr, ok = alb.Tracks[trackName]
-		// if alb.Tracks == nil {
-		// 	alb.Tracks = make(map[string]*track)
-		// }
-		// if ok == false {
-		// 	tr = &track{
-		// 		Name:   trackName,
-		// 		Number: meta.Track(),
-		// 	}
-		// }
-		// alb.Tracks[trackName] = tr
-
 		meta.Close()
 	}
 
-	b, _ := json.Marshal(artists)
-	// json.Marshal(artists)
-
-	fmt.Println(string(b))
+	return artists
 
 }
 
