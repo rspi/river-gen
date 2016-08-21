@@ -33,6 +33,7 @@ type track struct {
 	Name   string
 	Number int
 	Length string
+	Path   string
 }
 
 type folder struct {
@@ -156,6 +157,7 @@ func createByTags(dir string) map[string]*artist {
 			Name:   meta.Title(),
 			Number: meta.Track(),
 			Length: durationToString(meta.Length()),
+			Path:   strings.TrimLeft(file, dir),
 		})
 		meta.Close()
 	}
